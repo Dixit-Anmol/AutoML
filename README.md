@@ -1,4 +1,4 @@
-# 🚀 AutoML - Machine Learning Model Trainer
+# 🚀 ML Yantra - Machine Learning Instrument
 
 A comprehensive web-based machine learning application built with **Streamlit** that enables users to prepare data and train machine learning models without writing code.
 
@@ -53,8 +53,10 @@ A comprehensive web-based machine learning application built with **Streamlit** 
 
 Start the Streamlit application:
 ```bash
-streamlit run app.py
+streamlit run app/main.py
 ```
+
+> **Note**: The project has been restructured for better maintainability. The entry point is now `app/main.py` instead of `app.py`.
 
 The application will open in your default web browser at `http://localhost:8501`
 

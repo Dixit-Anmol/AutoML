@@ -124,11 +124,13 @@ if page == "Upload & Explore":
         
         with col1:
             st.subheader("📋 Dataset Head")
-            st.dataframe(st.session_state.df.head(10), width='stretch')
+            df = st.session_state.df.head(10).astype(str)
+            st.dataframe(df, width='stretch')
         
         with col2:
             st.subheader("📊 Dataset Description")
-            st.dataframe(st.session_state.df.describe(), width='stretch')
+            df = st.session_state.df.describe().astype(str)
+            st.dataframe(df, width='stretch')
         
         st.subheader("📈 Dataset Info")
         col1, col2, col3, col4 = st.columns(4)
@@ -142,12 +144,13 @@ if page == "Upload & Explore":
             st.metric("Total Duplicates", st.session_state.df.duplicated().sum())
         
         st.subheader("🔍 Data Types")
-        st.dataframe(pd.DataFrame({
+        df = pd.DataFrame({
             'Column': st.session_state.df.columns,
             'Data Type': st.session_state.df.dtypes.values,
             'Non-Null Count': st.session_state.df.count().values,
             'Null Count': st.session_state.df.isnull().sum().values
-        }), width='stretch')
+        }).astype(str)
+        st.dataframe(df, width='stretch')
 
 # ==================== HANDLE NULL VALUES ====================
 elif page == "Handle Null Values":
@@ -167,7 +170,7 @@ elif page == "Handle Null Values":
                 'Column': null_counts[null_counts > 0].index,
                 'Null Count': null_counts[null_counts > 0].values,
                 'Percentage': (null_counts[null_counts > 0].values / len(st.session_state.df) * 100).round(2)
-            })
+            }).astype(str)
             st.dataframe(null_df, width='stretch')
             
             st.subheader("🛠️ Handle Null Values")
@@ -227,12 +230,12 @@ elif page == "Handle Null Values":
                 
                 elif fill_method == "Forward Fill":
                     if st.button("Forward Fill"):
-                        st.session_state.df[selected_col] = st.session_state.df[selected_col].fillna(method='ffill')
+                        st.session_state.df[selected_col] = st.session_state.df[selected_col].ffill()
                         st.rerun()
                 
                 elif fill_method == "Backward Fill":
                     if st.button("Backward Fill"):
-                        st.session_state.df[selected_col] = st.session_state.df[selected_col].fillna(method='bfill')
+                        st.session_state.df[selected_col] = st.session_state.df[selected_col].bfill()
                         st.rerun()
 
 # ==================== HANDLE DUPLICATES ====================
@@ -255,7 +258,8 @@ elif page == "Handle Duplicates":
                 st.metric("Percentage", f"{(duplicate_count/len(st.session_state.df)*100):.2f}%")
             
             st.subheader("Sample Duplicate Rows")
-            st.dataframe(st.session_state.df[st.session_state.df.duplicated(keep=False)].head(10), width='stretch')
+            df = st.session_state.df[st.session_state.df.duplicated(keep=False)].head(10).astype(str)
+            st.dataframe(df, width='stretch')
             
             st.subheader("🛠️ Remove Duplicates")
             scope = st.radio("Scope", ["Remove all duplicates", "Remove duplicates based on specific column(s)"])
@@ -264,7 +268,8 @@ elif page == "Handle Duplicates":
                 if st.button("Remove All Duplicate Rows"):
                     st.session_state.df = st.session_state.df.drop_duplicates()
                     st.success(f"✅ Removed all duplicate rows. New shape: {st.session_state.df.shape}")
-                    st.dataframe(st.session_state.df.head(), width='stretch')
+                    df = st.session_state.df.head().astype(str)
+                    st.dataframe(df, width='stretch')
             
             else:
                 selected_cols = st.multiselect("Select columns to check for duplicates", st.session_state.df.columns.tolist())
@@ -272,7 +277,8 @@ elif page == "Handle Duplicates":
                 if st.button("Remove Duplicates Based on Selected Columns"):
                     st.session_state.df = st.session_state.df.drop_duplicates(subset=selected_cols)
                     st.success(f"✅ Removed duplicates based on selected columns. New shape: {st.session_state.df.shape}")
-                    st.dataframe(st.session_state.df.head(), width='stretch')
+                    df = st.session_state.df.head().astype(str)
+                    st.dataframe(df, width='stretch')
 
 # ==================== DATA TYPE CONVERSION ====================
 elif page == "Data Type Conversion":
@@ -282,10 +288,11 @@ elif page == "Data Type Conversion":
         st.header("🔄 Data Type Conversion")
         
         st.subheader("Current Data Types")
-        st.dataframe(pd.DataFrame({
+        df = pd.DataFrame({
             'Column': st.session_state.df.columns,
             'Current Type': st.session_state.df.dtypes.values
-        }), width='stretch')
+        }).astype(str)
+        st.dataframe(df, width='stretch')
         
         st.subheader("🛠️ Convert Data Type")
         selected_col = st.selectbox("Select column to convert", st.session_state.df.columns.tolist())
@@ -341,7 +348,8 @@ elif page == "Data Type Conversion":
                     st.session_state.df[selected_col] = st.session_state.df[selected_col].astype(new_type)
                 
                 st.success(f"✅ Converted '{selected_col}' from {current_type} to {new_type}")
-                st.dataframe(st.session_state.df[[selected_col]].head(10), width='stretch')
+                df = st.session_state.df[[selected_col]].head(10).astype(str)
+                st.dataframe(df, width='stretch')
             except Exception as e:
                 st.error(f"❌ Error converting data type: {str(e)}")
 
@@ -413,7 +421,8 @@ elif page == "Column Encoding":
                         st.session_state.df = df_encoded
                         
                         st.subheader("📊 Encoded Dataset Preview")
-                        st.dataframe(st.session_state.df.head(10), width='stretch')
+                        df = st.session_state.df.head(10).astype(str)
+                        st.dataframe(df, width='stretch')
                         
                         st.subheader("Dataset Info After Encoding")
                         col1, col2, col3 = st.columns(3)
@@ -457,7 +466,8 @@ elif page == "Filter Data":
                     st.session_state.filtered_df = st.session_state.df[(st.session_state.df[selected_col] >= min_val) & 
                                                                         (st.session_state.df[selected_col] <= max_val)]
                     st.success(f"✅ Filtered data for analysis. Shape: {st.session_state.filtered_df.shape}")
-                    st.dataframe(st.session_state.filtered_df.head(), width='stretch')
+                    df = st.session_state.filtered_df.head().astype(str)
+                    st.dataframe(df, width='stretch')
                     
                     # Download button for filtered data
                     csv_buffer = StringIO()
@@ -475,7 +485,8 @@ elif page == "Filter Data":
                 if st.button("Apply Filter"):
                     st.session_state.filtered_df = st.session_state.df[st.session_state.df[selected_col] > threshold]
                     st.success(f"✅ Filtered data for analysis. Shape: {st.session_state.filtered_df.shape}")
-                    st.dataframe(st.session_state.filtered_df.head(), width='stretch')
+                    df = st.session_state.filtered_df.head().astype(str)
+                    st.dataframe(df, width='stretch')
                     
                     csv_buffer = StringIO()
                     st.session_state.filtered_df.to_csv(csv_buffer, index=False)
@@ -492,7 +503,8 @@ elif page == "Filter Data":
                 if st.button("Apply Filter"):
                     st.session_state.filtered_df = st.session_state.df[st.session_state.df[selected_col] < threshold]
                     st.success(f"✅ Filtered data for analysis. Shape: {st.session_state.filtered_df.shape}")
-                    st.dataframe(st.session_state.filtered_df.head(), width='stretch')
+                    df = st.session_state.filtered_df.head().astype(str)
+                    st.dataframe(df, width='stretch')
                     
                     csv_buffer = StringIO()
                     st.session_state.filtered_df.to_csv(csv_buffer, index=False)
@@ -509,7 +521,8 @@ elif page == "Filter Data":
                 if st.button("Apply Filter"):
                     st.session_state.filtered_df = st.session_state.df[st.session_state.df[selected_col] == value]
                     st.success(f"✅ Filtered data for analysis. Shape: {st.session_state.filtered_df.shape}")
-                    st.dataframe(st.session_state.filtered_df.head(), width='stretch')
+                    df = st.session_state.filtered_df.head().astype(str)
+                    st.dataframe(df, width='stretch')
                     
                     csv_buffer = StringIO()
                     st.session_state.filtered_df.to_csv(csv_buffer, index=False)
@@ -528,7 +541,8 @@ elif page == "Filter Data":
             if st.button("Apply Filter"):
                 st.session_state.filtered_df = st.session_state.df[st.session_state.df[selected_col].isin(selected_values)]
                 st.success(f"✅ Filtered data for analysis. Shape: {st.session_state.filtered_df.shape}")
-                st.dataframe(st.session_state.filtered_df.head(), width='stretch')
+                df = st.session_state.filtered_df.head().astype(str)
+                st.dataframe(df, width='stretch')
                 
                 csv_buffer = StringIO()
                 st.session_state.filtered_df.to_csv(csv_buffer, index=False)
@@ -556,7 +570,8 @@ elif page == "Column Management":
             if st.button("Drop Selected Columns"):
                 st.session_state.df = st.session_state.df.drop(columns=columns_to_drop)
                 st.success(f"✅ Dropped columns: {', '.join(columns_to_drop)}. New shape: {st.session_state.df.shape}")
-                st.dataframe(st.session_state.df.head(), width='stretch')
+                df = st.session_state.df.head().astype(str)
+                st.dataframe(df, width='stretch')
         
         else:  # Rename Columns
             st.subheader("🛠️ Rename Columns")
@@ -576,7 +591,8 @@ elif page == "Column Management":
                 if rename_dict:
                     st.session_state.df = st.session_state.df.rename(columns=rename_dict)
                     st.success(f"✅ Renamed columns: {rename_dict}")
-                    st.dataframe(st.session_state.df.head(), width='stretch')
+                    df = st.session_state.df.head().astype(str)
+                    st.dataframe(df, width='stretch')
                 else:
                     st.info("ℹ️ No columns to rename")
 
@@ -661,15 +677,17 @@ elif page == "Model Trainer":
         # Main content area
         st.subheader("📈 Dataset Preview")
         with st.expander("Dataset Preview", expanded=True):
-            st.dataframe(st.session_state.df.head(10), width='stretch')
+            df = st.session_state.df.head(10).astype(str)
+            st.dataframe(df, width='stretch')
         
         with st.expander("Dataset Info"):
             st.write(f"**Shape:** {st.session_state.df.shape}")
             st.write(f"**Data Types:**")
-            st.dataframe(pd.DataFrame({
+            df = pd.DataFrame({
                 'Column': st.session_state.df.columns,
                 'Type': st.session_state.df.dtypes.values
-            }), width='stretch')
+            }).astype(str)
+            st.dataframe(df, width='stretch')
         
         # Import required libraries for training and testing
         from sklearn.model_selection import train_test_split
@@ -784,7 +802,8 @@ elif page == "Model Trainer":
         # Display results
         if st.session_state.model_results is not None:
             st.subheader("📊 Model Results")
-            st.dataframe(st.session_state.model_results, width='stretch')
+            df = st.session_state.model_results.astype(str)
+            st.dataframe(df, width='stretch')
             
             # Visualization section
             st.subheader("📈 Training Visualizations")
@@ -845,7 +864,8 @@ elif page == "Model Trainer":
                 ranking_df.index = ranking_df.index + 1
                 ranking_df.index.name = 'Rank'
             
-            st.dataframe(ranking_df, width='stretch')
+            df = ranking_df.astype(str)
+            st.dataframe(df, width='stretch')
             
             # Test Model Section
             st.subheader("🧪 Test Model on Test Data")
@@ -892,13 +912,13 @@ elif page == "Model Trainer":
                         st.write("**Confusion Matrix**")
                         cm = confusion_matrix(y_test, y_test_pred)
                         cm_df = pd.DataFrame(cm, columns=[f"Predicted {i}" for i in range(len(cm))],
-                                           index=[f"Actual {i}" for i in range(len(cm))])
+                                           index=[f"Actual {i}" for i in range(len(cm))]).astype(str)
                         st.dataframe(cm_df, width='stretch')
                         
                         # Classification Report
                         st.write("**Classification Report**")
                         report = classification_report(y_test, y_test_pred, output_dict=True)
-                        report_df = pd.DataFrame(report).transpose()
+                        report_df = pd.DataFrame(report).transpose().astype(str)
                         st.dataframe(report_df, width='stretch')
                     
                     else:  # Regression
@@ -925,7 +945,7 @@ elif page == "Model Trainer":
                             'Actual': y_test.values[:20],
                             'Predicted': y_test_pred[:20],
                             'Difference': (y_test.values[:20] - y_test_pred[:20])
-                        })
+                        }).astype(str)
                         st.dataframe(comparison_df, width='stretch')
                         
                         # Residual plot
@@ -990,7 +1010,8 @@ elif page == "Download":
             st.metric("Remaining Null Values", st.session_state.df.isnull().sum().sum())
         
         st.subheader("Preview of Cleaned Data")
-        st.dataframe(st.session_state.df.head(20), width='stretch')
+        df = st.session_state.df.head(20).astype(str)
+        st.dataframe(df, width='stretch')
         
         st.subheader("📥 Download Options")
         
@@ -1047,5 +1068,5 @@ elif page == "Download":
                 st.session_state.df.isnull().sum().sum(),
                 st.session_state.df.duplicated().sum()
             ]
-        })
+        }).astype(str)
         st.dataframe(comparison_df, width='stretch')
