@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
+import { DataPreview } from "@/components/DataPreview";
 type CleaningStep = "upload" | "nulls" | "duplicates" | "convert" | "encode" | "filter" | "columns" | "download";
 
 const CleanPage = () => {
@@ -21,6 +21,8 @@ const CleanPage = () => {
   const [currentStep, setCurrentStep] = useState<CleaningStep>("upload");
   const [datasetInfo, setDatasetInfo] = useState<DatasetInfo | null>(null);
   const [datasetPreview, setDatasetPreview] = useState<DatasetPreview | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const { toast } = useToast();
 
   // Load session from localStorage on mount
@@ -38,6 +40,7 @@ const CleanPage = () => {
       setDatasetInfo(info);
       const preview = await apiClient.getDatasetPreview(sid, 10);
       setDatasetPreview(preview);
+      await loadHistoryStatus(sid);
     } catch (error: any) {
       console.error("Failed to load dataset info:", error);
     }
@@ -109,6 +112,56 @@ const CleanPage = () => {
       await loadDatasetInfo(sessionId);
     }
   };
+  const loadHistoryStatus = async (sid: string) => {
+    try {
+      const status = await apiClient.getHistoryStatus(sid);
+      setCanUndo(status.can_undo);
+      setCanRedo(status.can_redo);
+    } catch (error) {
+      console.error("Failed to load history status:", error);
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!sessionId) return;
+    setIsProcessing(true);
+    try {
+      const result = await apiClient.undo(sessionId);
+      toast({ title: "Success!", description: result.message || "Operation undone" });
+      await refreshDatasetInfo();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRedo = async () => {
+    if (!sessionId) return;
+    setIsProcessing(true);
+    try {
+      const result = await apiClient.redo(sessionId);
+      toast({ title: "Success!", description: result.message || "Operation redone" });
+      await refreshDatasetInfo();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReset = () => {
+    setSessionId(null);
+    setDatasetInfo(null);
+    setDatasetPreview(null);
+    setFile(null);
+    setCanUndo(false);
+    setCanRedo(false);
+    setCurrentStep("upload");
+    localStorage.removeItem("automl_session_id");
+    toast({ title: "Reset Complete", description: "Ready to upload a new dataset" });
+  };
+
 
   return (
     <div className="min-h-screen relative overflow-hidden pt-24 pb-16">
@@ -171,13 +224,38 @@ const CleanPage = () => {
               <div className="relative bg-card/80 backdrop-blur-xl border border-border rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-2xl font-bold">Dataset Overview</h3>
-                  <Button
-                    onClick={refreshDatasetInfo}
-                    variant="outline"
-                    size="sm"
-                  >
-                    🔄 Refresh
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleUndo}
+                      disabled={!canUndo || isProcessing}
+                      variant="outline"
+                      size="sm"
+                    >
+                      ↶ Undo
+                    </Button>
+                    <Button
+                      onClick={handleRedo}
+                      disabled={!canRedo || isProcessing}
+                      variant="outline"
+                      size="sm"
+                    >
+                      ↷ Redo
+                    </Button>
+                    <Button
+                      onClick={handleReset}
+                      variant="outline"
+                      size="sm"
+                    >
+                      📤 Upload Another
+                    </Button>
+                    <Button
+                      onClick={refreshDatasetInfo}
+                      variant="outline"
+                      size="sm"
+                    >
+                      🔄 Refresh
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -361,7 +439,9 @@ const NullsTab = ({ sessionId, datasetInfo, onUpdate }: any) => {
       >
         {isProcessing ? "Processing..." : `Apply ${operation === "remove" ? "Remove" : "Fill"}`}
       </Button>
-    </div>
+
+
+      <DataPreview sessionId={sessionId} refreshTrigger={Date.now()} /></div>
   );
 };
 
@@ -407,7 +487,9 @@ const DuplicatesTab = ({ sessionId, datasetInfo, onUpdate }: any) => {
       >
         {isProcessing ? "Removing..." : "Remove All Duplicates"}
       </Button>
-    </div>
+
+
+      <DataPreview sessionId={sessionId} refreshTrigger={Date.now()} /></div>
   );
 };
 
@@ -479,7 +561,9 @@ const ConvertTab = ({ sessionId, datasetInfo, onUpdate }: any) => {
       >
         {isProcessing ? "Converting..." : "Convert Data Type"}
       </Button>
-    </div>
+
+
+      <DataPreview sessionId={sessionId} refreshTrigger={Date.now()} /></div>
   );
 };
 
@@ -571,7 +655,9 @@ const EncodeTab = ({ sessionId, datasetInfo, onUpdate }: any) => {
       >
         {isProcessing ? "Encoding..." : `Encode ${selectedColumns.length} Column(s)`}
       </Button>
-    </div>
+
+
+      <DataPreview sessionId={sessionId} refreshTrigger={Date.now()} /></div>
   );
 };
 
@@ -691,7 +777,9 @@ const FilterTab = ({ sessionId, datasetInfo, onUpdate }: any) => {
       >
         {isProcessing ? "Filtering..." : "Apply Filter"}
       </Button>
-    </div>
+
+
+      <DataPreview sessionId={sessionId} refreshTrigger={Date.now()} /></div>
   );
 };
 
@@ -774,7 +862,9 @@ const ColumnsTab = ({ sessionId, datasetInfo, onUpdate }: any) => {
       >
         {isProcessing ? "Processing..." : `${operation === "drop" ? "Drop" : "Rename"} Columns`}
       </Button>
-    </div>
+
+
+      <DataPreview sessionId={sessionId} refreshTrigger={Date.now()} /></div>
   );
 };
 

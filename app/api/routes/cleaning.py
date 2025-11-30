@@ -227,6 +227,8 @@ async def convert_data_type(request: DataTypeConversionRequest):
         )
 
 
+
+
 @router.post("/encode", response_model=CleaningResponse)
 async def encode_columns(request: EncodingRequest):
     """Encode categorical columns"""
@@ -427,3 +429,82 @@ async def manage_columns(request: ColumnManagementRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error managing columns: {str(e)}"
         )
+
+
+@router.post("/undo", response_model=CleaningResponse)
+async def undo_operation(session_id: str):
+    """Undo the last operation"""
+    
+    if not session_manager.can_undo(session_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No operations to undo"
+        )
+    
+    try:
+        df = session_manager.undo(session_id)
+        if df is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to undo operation"
+            )
+        
+        return CleaningResponse(
+            success=True,
+            message="Operation undone successfully",
+            dataset_info=get_dataset_info(df)
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error undoing operation: {str(e)}"
+        )
+
+
+@router.post("/redo", response_model=CleaningResponse)
+async def redo_operation(session_id: str):
+    """Redo the last undone operation"""
+    
+    if not session_manager.can_redo(session_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No operations to redo"
+        )
+    
+    try:
+        df = session_manager.redo(session_id)
+        if df is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Failed to redo operation"
+            )
+        
+        return CleaningResponse(
+            success=True,
+            message="Operation redone successfully",
+            dataset_info=get_dataset_info(df)
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error redoing operation: {str(e)}"
+        )
+
+
+@router.get("/history-status")
+async def get_history_status(session_id: str):
+    """Get the current undo/redo availability status"""
+    
+    session = session_manager.get_session(session_id)
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Session {session_id} not found"
+        )
+    
+    return {
+        "can_undo": session_manager.can_undo(session_id),
+        "can_redo": session_manager.can_redo(session_id)
+    }

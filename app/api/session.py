@@ -19,6 +19,7 @@ class SessionManager:
         self.cleaned_dir = Path(cleaned_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
         self.cleaned_dir.mkdir(parents=True, exist_ok=True)
+        self.max_history = 10  # Maximum number of states to keep in history
         
     def create_session(self) -> str:
         """Create a new session and return session ID"""
@@ -28,6 +29,8 @@ class SessionManager:
             "last_accessed": datetime.now(),
             "df": None,
             "original_df": None,
+            "history": [],  # Stack of previous dataframe states
+            "redo_stack": [],  # Stack for redo functionality
             "training_status": "idle",
             "trained_models": {},
             "training_results": None
@@ -47,6 +50,15 @@ class SessionManager:
         if session is None:
             raise ValueError(f"Session {session_id} not found")
         
+        # Save current state to history before updating (if there's a current dataframe)
+        if session["df"] is not None:
+            session["history"].append(session["df"].copy())
+            # Limit history size
+            if len(session["history"]) > self.max_history:
+                session["history"].pop(0)  # Remove oldest state
+            # Clear redo stack when new operation is performed
+            session["redo_stack"] = []
+        
         session["df"] = df.copy()
         if keep_original and session["original_df"] is None:
             session["original_df"] = df.copy()
@@ -57,6 +69,57 @@ class SessionManager:
         if session and session["df"] is not None:
             return session["df"].copy()
         return None
+    
+    def undo(self, session_id: str) -> Optional[pd.DataFrame]:
+        """Undo the last operation by restoring previous dataframe state"""
+        session = self.get_session(session_id)
+        if session is None:
+            raise ValueError(f"Session {session_id} not found")
+        
+        if not session["history"]:
+            return None  # Nothing to undo
+        
+        # Push current state to redo stack
+        if session["df"] is not None:
+            session["redo_stack"].append(session["df"].copy())
+        
+        # Pop from history and set as current
+        session["df"] = session["history"].pop()
+        return session["df"].copy()
+    
+    def redo(self, session_id: str) -> Optional[pd.DataFrame]:
+        """Redo the last undone operation"""
+        session = self.get_session(session_id)
+        if session is None:
+            raise ValueError(f"Session {session_id} not found")
+        
+        if not session["redo_stack"]:
+            return None  # Nothing to redo
+        
+        # Push current state to history
+        if session["df"] is not None:
+            session["history"].append(session["df"].copy())
+            # Limit history size
+            if len(session["history"]) > self.max_history:
+                session["history"].pop(0)
+        
+        # Pop from redo stack and set as current
+        session["df"] = session["redo_stack"].pop()
+        return session["df"].copy()
+    
+    def can_undo(self, session_id: str) -> bool:
+        """Check if undo is available"""
+        session = self.get_session(session_id)
+        if session is None:
+            return False
+        return len(session.get("history", [])) > 0
+    
+    def can_redo(self, session_id: str) -> bool:
+        """Check if redo is available"""
+        session = self.get_session(session_id)
+        if session is None:
+            return False
+        return len(session.get("redo_stack", [])) > 0
     
     def save_file(self, session_id: str, file_path: Path, file_type: str = "upload") -> Path:
         """Save uploaded or cleaned file"""

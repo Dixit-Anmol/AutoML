@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import FloatingOrbs from "@/components/FloatingOrbs";
 import InteractiveBackground from "@/components/InteractiveBackground";
 import SwastikaIcon from "@/components/SwastikaIcon";
+import GrowthIcon from "@/components/GrowthIcon";
 
 const Home = () => {
   return (
@@ -99,7 +100,7 @@ const Home = () => {
                 color: "neon-purple",
               },
               {
-                icon: SwastikaIcon,
+                icon: GrowthIcon,
                 title: "Visual Insights",
                 description: "Beautiful visualizations and comprehensive metrics to understand your model's performance.",
                 color: "neon-magenta",
