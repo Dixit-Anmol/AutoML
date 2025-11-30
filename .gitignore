@@ -46,7 +46,6 @@ data/
 *.csv
 *.xlsx
 *.xls
-*.json
 *.parquet
 
 # Models
